@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0a0a0a,100:ED1944&height=170&section=header&text=Multi-Node%20OpenStack%20Cloud&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Private%20cloud%20automated%20with%20Ansible%20%7C%20Kubernetes%20%7C%20Prometheus%20%26%20Grafana&descAlignY=60&descSize=16" alt="banner" width="100%" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0a0a0a,100:ED1944&height=180&section=header&text=OpenStack%20Multi-Node%20Cloud&fontSize=42&fontColor=ffffff&fontAlignY=38&desc=Private%20cloud%20with%20Kubernetes%20and%20Ansible&descAlignY=60&descSize=18" alt="OpenStack Multi-Node Cloud" width="100%" />
 
 <br>
 
@@ -9,8 +9,8 @@
 <br>
 
 ![Period](https://img.shields.io/badge/Oct_2024_--_May_2025-blue?style=flat-square)
-![Type](https://img.shields.io/badge/type-academic_project-orange?style=flat-square)
-![Domain](https://img.shields.io/badge/domain-private_cloud_%7C_IaC-2ea44f?style=flat-square)
+![Type](https://img.shields.io/badge/type-team_project-orange?style=flat-square)
+![Domain](https://img.shields.io/badge/domain-private_cloud_%2F_IaC-2ea44f?style=flat-square)
 
 <br><br>
 
@@ -31,91 +31,117 @@
 
 ## 📖 Overview
 
-Design and deployment of a **multi-node private cloud** built on **OpenStack**, running **Kubernetes** clusters on top of it. Instance provisioning and scaling are automated to make optimal use of resources, cluster configuration is managed with **Ansible**, and the whole platform is observed in real time with **Prometheus** and **Grafana**.
+Design and deployment of a **multi-node private cloud** on **OpenStack**, with **Kubernetes** clusters running on top of it. The platform separates the cloud into dedicated **controller, network, compute and storage nodes**, automates instance provisioning and scaling, manages cluster configuration with **Ansible**, and is monitored in real time with **Prometheus** and **Grafana**.
+
+This was a **team project**. Each team member took ownership of a node role, and I was responsible for the **compute node**.
 
 ## 🏗️ Architecture
 
-> TODO: adjust this diagram to match your real topology (node roles, networks, number of nodes).
-
 ```mermaid
 flowchart TB
-    ANS["Ansible control node"]
-    subgraph Cloud["OpenStack multi-node cloud"]
-        CTRL["Controller node"]
-        COMP1["Compute node 1"]
-        COMP2["Compute node 2"]
-        CTRL --- COMP1
-        CTRL --- COMP2
+    ANS["Ansible automation"]
+
+    subgraph OS["OpenStack private cloud"]
+        direction TB
+        CTRL["Controller node<br/>Keystone, Glance, Nova API, Placement, Neutron server, Horizon"]
+        NET["Network node<br/>Neutron L3, DHCP and metadata agents"]
+        COMP["Compute node<br/>Nova compute, hypervisor, Neutron agent"]
+        STOR["Storage node<br/>Cinder block storage, Swift object storage"]
+        CTRL --- NET
+        CTRL --- COMP
+        CTRL --- STOR
+        NET --- COMP
+        STOR --- COMP
     end
-    subgraph K8S["Kubernetes cluster on OpenStack instances"]
+
+    subgraph K8S["Kubernetes cluster running on OpenStack instances"]
+        direction LR
         MASTER["Control plane"]
         W1["Worker 1"]
         W2["Worker 2"]
         MASTER --- W1
         MASTER --- W2
     end
+
     subgraph MON["Monitoring"]
+        direction LR
         PROM["Prometheus"] --> GRAF["Grafana dashboards"]
     end
-    ANS -->|provisions and configures| Cloud
+
+    ANS -->|deploys and configures| OS
     ANS -->|configures| K8S
-    Cloud -->|hosts| K8S
-    PROM -. scrapes metrics .-> Cloud
+    COMP -->|hosts the instances| K8S
+    PROM -. scrapes metrics .-> OS
     PROM -. scrapes metrics .-> K8S
 ```
 
-## ✨ What I built
+## 🖥️ Node roles
 
-- **Multi-node OpenStack cloud**: controller and compute nodes working together as one private cloud
-- **Automated provisioning and scaling** of instances to use resources efficiently
-- **Kubernetes clusters** deployed on top of the OpenStack instances
-- **Configuration management with Ansible**: repeatable, idempotent setup of every cluster node
-- **Real-time monitoring**: Prometheus collects metrics, Grafana visualizes them, giving full visibility into the infrastructure
+| Node | Responsibility | Main components |
+|---|---|---|
+| **Controller** | Control plane of the cloud: identity, APIs, scheduling, dashboard | Keystone, Glance, Nova API and scheduler, Placement, Neutron server, Horizon, database, message queue |
+| **Network** | Virtual networking, routing, DHCP and external connectivity | Neutron L3 agent, DHCP agent, metadata agent, Open vSwitch / Linux bridge |
+| **Compute** | Runs the virtual machines that host the Kubernetes nodes | Nova compute, KVM/QEMU hypervisor, Neutron agent |
+| **Storage** | Persistent block and object storage | Cinder (volumes), Swift (objects) |
+
+## 🧩 OpenStack services
+
+| Service | Role |
+|---|---|
+| **Keystone** | Identity, authentication, authorization and service catalog |
+| **Glance** | Image registry for virtual machine images |
+| **Nova** | Instance lifecycle and scheduling across compute nodes |
+| **Placement** | Resource inventory and allocation tracking for the scheduler |
+| **Neutron** | Virtual networks, subnets, routers, security groups and floating IPs |
+| **Cinder** | Persistent block storage volumes attached to instances |
+| **Swift** | Scalable object storage |
+| **Horizon** | Web dashboard to manage the cloud |
+
+## 👤 My contribution: the compute node
+
+- Deployed and configured the **compute node** that hosts the instances of the cloud
+- Set up **Nova compute** with the **KVM/QEMU hypervisor** and connected it to the controller's Nova, Placement and message queue services
+- Configured the **Neutron agent** on the node so instances attach to the virtual networks managed by the network node
+- Integrated the compute node with **Glance** for images and **Cinder** for volumes, so instances boot from images and use persistent storage
+- Validated instance provisioning end to end, from image to running VM with networking and a volume attached
+- Automated the node configuration with **Ansible** so it can be rebuilt and scaled with additional compute nodes
+- Exposed node metrics to **Prometheus** for monitoring in **Grafana**
+
+## ✨ Platform highlights
+
+- **Multi-node OpenStack cloud** split into controller, network, compute and storage roles
+- **Automated provisioning and scaling** of instances for optimal resource utilization
+- **Kubernetes clusters** deployed on OpenStack instances
+- **Infrastructure as Code**: cluster and node configuration managed with Ansible playbooks
+- **Observability**: real-time metrics and dashboards with Prometheus and Grafana
 
 ## 🔄 Workflow
 
-1. **Prepare** the nodes and networking
-2. **Deploy OpenStack** across the controller and compute nodes
-3. **Provision instances** automatically for the Kubernetes nodes
-4. **Configure the clusters** with Ansible playbooks
-5. **Monitor** everything with Prometheus and Grafana, and scale as needed
+1. Prepare the nodes, network segments and base operating system
+2. Deploy the OpenStack core services on the controller node
+3. Configure networking on the network node and virtualization on the compute node
+4. Attach block and object storage through Cinder and Swift
+5. Provision instances and build the Kubernetes cluster on top
+6. Automate configuration with Ansible and monitor everything with Prometheus and Grafana
 
 ## 🛠️ Tech stack
 
 | Area | Technologies |
 |---|---|
-| Private cloud | OpenStack |
+| Private cloud | OpenStack: Keystone, Glance, Nova, Placement, Neutron, Cinder, Swift, Horizon |
+| Virtualization | KVM, QEMU |
 | Orchestration | Kubernetes |
 | Automation | Ansible |
 | Monitoring | Prometheus, Grafana |
 | Systems | Linux server administration |
 
-> TODO: add what you actually used, e.g. the OpenStack deployment method and services (Nova, Neutron, Keystone, Glance, Horizon...), the Kubernetes distribution, the CNI plugin, the number of nodes.
-
 ## 🎯 Key takeaways
 
-- Building and operating a private cloud from the ground up
-- Infrastructure as Code with Ansible for reproducible environments
+- Designing a private cloud with clearly separated controller, network, compute and storage roles
+- Understanding how OpenStack services interact: identity, images, scheduling, networking and storage
 - Running Kubernetes on top of an IaaS layer
-- Observability: metrics collection, dashboards and resource visibility
-
-## 📂 Repository structure
-
-> TODO: only keep this section if you publish the code. Example:
-
-```text
-.
-├── ansible/          # playbooks and roles
-├── openstack/        # deployment configuration
-├── kubernetes/       # cluster manifests
-├── monitoring/       # Prometheus and Grafana configuration
-└── docs/             # screenshots and notes
-```
-
-## 📸 Screenshots
-
-> TODO: add 2 or 3 screenshots (OpenStack dashboard, Grafana dashboard, `kubectl get nodes`). Put them in `docs/` and embed them like this:
-> `![Grafana](docs/grafana.png)`
+- Teamwork on shared infrastructure with clear ownership per node
+- Infrastructure as Code and observability for reproducible, monitored environments
 
 ---
 
